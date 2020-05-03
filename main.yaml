@@ -1,0 +1,44 @@
+---
+- name: Configuring DevTop
+  hosts: localhost
+  connection: local
+  tasks:
+  - name: add VS Code key
+    rpm_key:
+      key: "https://packages.microsoft.com/keys/microsoft.asc"
+  - name: add repo and key for VS Code
+    copy:
+      src: "{{ playbook_dir }}/files/vscode.repo"
+      dest: "/etc/yum.repos.d/"
+  - name: install required packages
+    become: yes
+    dnf:
+      name:
+      - podman
+      - code
+      state: present
+      update_cache: yes
+  - name: download golang 1.14.2
+    get_url:
+      url: https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz
+      checksum: 6272d6e940ecb71ea5636ddb5fab3933e087c1356173c61f4a803895e947ebb3
+      dest: "~/go.tar"
+  - name: install golang
+    unarchive:
+      src: "~/go.tar"
+      dest: "/usr/local"
+      creates: "/usr/local/go"
+      mode: 0755
+  - name: add go/bin to user $PATH
+    lineinfle:
+      path: "~/.bashrc"
+      state: present
+      insertafter: EOF
+      line: "export PATH=$PATH:/usr/local/go/bin"
+  - name: remove downloaded golang artefact
+    file:
+      path: "~/go.tar"
+      state: absent
+  - name: remove redundant dependencies
+    yum:
+      autoremove: yes
